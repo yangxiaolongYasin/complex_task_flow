@@ -1,11 +1,11 @@
-# InteractionFlow
+# ComplexTaskFlow
 
-[![Pub Version](https://img.shields.io/pub/v/interaction_flow)](https://pub.dev/packages/interaction_flow)
+[![Pub Version](https://img.shields.io/pub/v/complex_task_flow)](https://pub.dev/packages/complex_task_flow)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 一个强大、严格有序且支持动态调度的 Flutter 交互流控制器。
 
-**InteractionFlow** 专为解决复杂的 UI 串行场景而生——例如 APP 启动弹窗链、新手引导流程或多步骤表单。它能确保 UI 严格按照预设顺序展示，哪怕背后的 API 是乱序返回的。
+**ComplexTaskFlow** 专为解决复杂的 UI 串行场景而生——例如 APP 启动弹窗链、新手引导流程或多步骤表单。它能确保 UI 严格按照预设顺序展示，哪怕背后的 API 是乱序返回的。
 
 它将 **业务逻辑 (API)** 与 **UI 表现 (Dialog)** 彻底解耦，优雅地解决了“回调地狱”和“竞态条件 (Race Condition)”问题。
 
@@ -25,13 +25,13 @@
 
 ```yaml
 dependencies:
-  interaction_flow: ^0.0.1
+  complex_task_flow: ^0.0.1
 ```
 或者执行命令：
 
 ```Bash
 
-flutter pub add interaction_flow
+flutter pub add complex_task_flow
 ```
 ## 📖 使用指南
 1. 基础：严格顺序流
@@ -39,7 +39,7 @@ flutter pub add interaction_flow
 
 ```dart
 
-import 'package:interaction_flow/interaction_flow.dart';
+import 'package:complex_task_flow/complex_task_flow.dart';
 
 // 定义步骤 ID
 const int stepTOS = 1;
@@ -47,7 +47,7 @@ const int stepAd = 2;
 
 void start() {
   // 1. 初始化流程
-  InteractionFlowCenter.I.start('init_flow', [stepTOS, stepAd], onComplete: () {
+  ComplexTaskFlowCenter.I.start('init_flow', [stepTOS, stepAd], onComplete: () {
     print('流程结束！');
   });
 
@@ -59,7 +59,7 @@ void start() {
 void _mockAdApi() async {
   await Future.delayed(Duration(milliseconds: 100));
   // 此时 Step 1 还没完，Step 2 的结果会被存入 Buffer 等待
-  InteractionFlowCenter.I.resolve(
+  ComplexTaskFlowCenter.I.resolve(
     'init_flow', 
     stepAd, 
     task: () async => await showDialog(...),
@@ -69,7 +69,7 @@ void _mockAdApi() async {
 void _mockTosApi() async {
   await Future.delayed(Duration(seconds: 2));
   // Step 1 完成，立即展示。展示结束后，会自动触发已缓冲的 Step 2。
-  InteractionFlowCenter.I.resolve(
+  ComplexTaskFlowCenter.I.resolve(
     'init_flow', 
     stepTOS, 
     task: () async => await showDialog(...),
@@ -89,12 +89,12 @@ Step 1 (用户检查) 接口后回，决定替换后续流程为 [3]。
 ```dart
 
 // 初始: [CheckUser, Ad]
-InteractionFlowCenter.I.start('vip_flow', [1, 2]);
+ComplexTaskFlowCenter.I.start('vip_flow', [1, 2]);
 
 // ... Step 2 (Ad) 接口已回并缓冲 ...
 
 // Step 1: 用户检查
-InteractionFlowCenter.I.resolve(
+ComplexTaskFlowCenter.I.resolve(
   'vip_flow', 
   1, 
   task: null, // 该步骤本身无 UI
@@ -115,7 +115,7 @@ Step 1 决定在 2 之前插入 3。
 ```dart
 
 // Step 1
-InteractionFlowCenter.I.resolve(
+ComplexTaskFlowCenter.I.resolve(
   'vip_flow', 
   1, 
   task: () async => await showDialog(...),
@@ -131,10 +131,10 @@ InteractionFlowCenter.I.resolve(
 void checkPermission() {
   if (isGranted) {
     // 通过：移除步骤，继续向下
-    InteractionFlowCenter.I.resolve('perm_flow', 2, task: null);
+    ComplexTaskFlowCenter.I.resolve('perm_flow', 2, task: null);
   } else {
     // 拒绝：停留重试
-    InteractionFlowCenter.I.resolve(
+    ComplexTaskFlowCenter.I.resolve(
       'perm_flow',
       2,
       stay: true, // <--- 关键参数
@@ -148,7 +148,7 @@ void checkPermission() {
 }
 ```
 ## 🧩 API 参考
-## InteractionFlowCenter.I (单例)
+## ComplexTaskFlowCenter.I (单例)
 *   start(String key, List<int> steps, {VoidCallback? onComplete})
 	*   开启一条新流。如果同名 key 已存在，旧流会被自动取消。
 *   resolve(String key, int stepId, {FlowTask? task, List<int>? nextSteps, bool stay = false})
@@ -166,7 +166,7 @@ void checkPermission() {
 	*   立即终止流程并清空所有缓冲区。
 ## 💡 核心机制解密
 1. 解决“幽灵弹窗”问题
-在使用 nextSteps 替换队列时，InteractionFlow 会执行 集合差集运算 (Set Difference)：
+在使用 nextSteps 替换队列时，ComplexTaskFlow 会执行 集合差集运算 (Set Difference)：
 
 如果某个步骤 不在 新的 nextSteps 列表中，它的缓冲结果会被 立即销毁。
 如果某个步骤 在 新列表中，它的缓冲结果会被 保留。
